@@ -1,0 +1,33 @@
+cff-version: 1.2.0
+message: "If you use this UDF, report or data, please cite it as below."
+title: "CRW-Langevin particle dispersion UDF for ANSYS Fluent (reproduction of Dehbi, 2008)"
+type: software
+authors:
+  - family-names: "Karbakhsh Ravari"
+    given-names: "Sina"
+    affiliation: "Shiraz University"
+    orcid: "https://orcid.org/0009-0003-6017-8628"
+repository-code: "https://github.com/Sina4832/crw-dehbi-2008-fluent-udf"
+license: MIT
+date-released: "2026-05-14"
+keywords:
+  - CFD
+  - ANSYS Fluent
+  - user-defined function
+  - Lagrangian particle tracking
+  - continuous random walk
+  - Langevin equation
+  - aerosol deposition
+references:
+  - type: article
+    authors:
+      - family-names: "Dehbi"
+        given-names: "A."
+    title: "Turbulent particle dispersion in arbitrary wall-bounded geometries: A coupled CFD-Langevin-equation based approach"
+    journal: "International Journal of Multiphase Flow"
+    volume: 34
+    issue: 9
+    start: 819
+    end: 828
+    year: 2008
+    doi: "10.1016/j.ijmultiphaseflow.2008.03.001"
