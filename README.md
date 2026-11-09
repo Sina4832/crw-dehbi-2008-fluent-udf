@@ -1,13 +1,23 @@
 # CRW–Langevin Particle Dispersion UDF for ANSYS Fluent
 
+[![Report](https://img.shields.io/badge/Technical_report-PDF-1F4E79?style=flat-square)](report/crw-dehbi2008-technical-report.pdf)
+[![ANSYS Fluent](https://img.shields.io/badge/ANSYS_Fluent-2024_R2-FFB71B?style=flat-square)](udf/crw_dehbi2008_rev10.c)
+[![Language](https://img.shields.io/badge/language-C-555555?style=flat-square)](udf/crw_dehbi2008_rev10.c)
+[![License](https://img.shields.io/badge/license-MIT-2E7D32?style=flat-square)](LICENSE)
+
 Implementation of the continuous random walk (CRW) model of
 [Dehbi (2008)](https://doi.org/10.1016/j.ijmultiphaseflow.2008.03.001) as a
 compiled ANSYS Fluent user-defined function, applied to turbulent aerosol
 deposition in a 90° pipe bend.
 
+| Computational domain | Bend cross-section mesh (5.3 × 10⁶ cells) |
+| :---: | :---: |
+| <img src="figures/geometry.png" width="380" alt="90-degree pipe bend with straight inlet and outlet sections"> | <img src="figures/mesh-refined-5.3M.png" width="380" alt="Structured hexahedral mesh of the bend cross-section"> |
+
 **Author:** Sina Karbakhsh Ravari, Shiraz University ·
 ORCID [0009-0003-6017-8628](https://orcid.org/0009-0003-6017-8628) ·
 Supervisor: Dr. Ebrahim Ghahramani
+
 **Technical report:** [Markdown](report/crw-dehbi2008-technical-report.md) ·
 [PDF](report/crw-dehbi2008-technical-report.pdf)
 
@@ -41,7 +51,7 @@ treatment on a 5.3 × 10⁶-cell hexahedral mesh (ANSYS Fluent 2024 R2);
 | Flow Stokes number $Stk$ | 0.092 | 0.368 | 0.829 | 1.473 | 2.302 |
 | Deposition fraction (%) | 16.7 | 57.2 | 78.6 | 94.5 | 98.0 |
 
-![Deposition fraction](figures/deposition-fraction.png)
+<p align="center"><img src="figures/deposition-fraction.png" width="560" alt="Deposition fraction against particle diameter and flow Stokes number"></p>
 
 The report documents the model equations with source-line references, a
 statistical verification of the random-number generator, and the scope and
