@@ -1,20 +1,21 @@
 /*
  * rng_check.c - statistical check of gauss_rand() from udf/crw_dehbi2008_rev10.c
  *
- * The function body below is copied from the UDF (Section 1) with two
- * substitutions so that it runs outside ANSYS Fluent:
- *   - Tracked_Particle* is replaced by a fixed integer "address" and a time;
- *   - unsigned long is emulated as a 32-bit type, as on Windows/MSVC (LLP64),
- *     which is the compiler used to build the UDF for the reported results.
+ * The function body below is an exact copy of the UDF (Section 1), with the
+ * Tracked_Particle pointer replaced by an integer "address" and a time so that
+ * it runs outside ANSYS Fluent. Only the lowest 31 bits of each congruential
+ * step are used, so the results are identical for 32-bit (MSVC) and 64-bit
+ * unsigned long.
  *
  * Build and run:
  *     gcc -O2 -o rng_check tools/rng_check.c -lm
- *     ./rng_check            (default time step 1e-6 s, the UDF upper bound)
+ *     ./rng_check            (time step 1e-6 s, the UDF upper bound)
  *     ./rng_check 3.1e-5     (any other time step in seconds)
  *
- * For independent standard normal deviates the expected results are
- * mean ~ 0, variance ~ 1, and all correlations ~ 0 within about
- * +/- 2/sqrt(N) = +/- 0.0045 for N = 200000.
+ * For independent standard normal deviates: mean ~ 0, variance ~ 1, all
+ * correlations ~ 0 within about +/- 2/sqrt(N), and var(sum of M)/M ~ 1.
+ * Test [4] repeats test [3] for 2000 pseudo-random 16-byte-aligned addresses
+ * (fixed seed, so the output is reproducible) and prints the distribution.
  */
 #include <math.h>
 #include <stdint.h>
@@ -25,7 +26,13 @@
 #define M_PI 3.14159265358979323846
 #endif
 
-typedef uint32_t ulong32; /* MSVC: unsigned long is 32-bit */
+typedef uint32_t ulong32;
+
+static int cmp_double(const void *a, const void *b)
+{
+    double x = *(const double *)a, y = *(const double *)b;
+    return (x > y) - (x < y);
+}
 
 static double gauss_rand_copy(uint64_t address, double time, int salt)
 {
@@ -47,27 +54,67 @@ static double gauss_rand_copy(uint64_t address, double time, int salt)
 int main(int argc, char **argv)
 {
     const int N = 200000;
-    const uint64_t addr = 0x7ff6a1b2c3d0ULL; /* arbitrary heap-like address */
+    const uint64_t addrs[] = {0x7ff6a1b2c3d0ULL, 0x1000ULL, 0x2a7f3e10ULL,
+                              0x55d0c0ffee40ULL, 0x7f00deadbe00ULL, 0x12345670ULL};
+    const uint64_t gaps[] = {0x8, 0x20, 0x1C0, 0x2000};
+    const int n_addr = 6, n_gap = 4, M = 1000, B = 200;
     double dt = (argc > 1) ? atof(argv[1]) : 1.0e-6;
-    double sum = 0.0, sumsq = 0.0, cross01 = 0.0, pp = 0.0;
-    int lag, n;
+    double sum = 0.0, sumsq = 0.0;
+    int a, g, lag, n, b, m;
 
+    printf("time step: %g s\n\n", dt);
     for (n = 0; n < N; n++) {
-        double t = n * dt;
-        double x0 = gauss_rand_copy(addr, t, 0);
-        double x1 = gauss_rand_copy(addr, t, 1);
-        double y0 = gauss_rand_copy(addr + 0x1C0, t, 0); /* neighbouring particle */
-        sum += x0; sumsq += x0 * x0; cross01 += x0 * x1; pp += x0 * y0;
+        double x = gauss_rand_copy(addrs[0], n * dt, 0);
+        sum += x; sumsq += x * x;
     }
-    printf("time step            : %g s, N = %d\n", dt, N);
-    printf("mean, variance       : %+.4f, %.4f\n", sum / N, sumsq / N - (sum / N) * (sum / N));
+    printf("[1] address %#llx, N = %d\n", (unsigned long long)addrs[0], N);
+    printf("    mean, variance       : %+.4f, %.4f\n", sum / N, sumsq / N - (sum / N) * (sum / N));
     for (lag = 1; lag <= 5; lag++) {
-        double a = 0.0;
+        double c = 0.0;
         for (n = 0; n < N; n++)
-            a += gauss_rand_copy(addr, n * dt, 0) * gauss_rand_copy(addr, (n + lag) * dt, 0);
-        printf("autocorrelation lag %d: %+.4f\n", lag, a / N);
+            c += gauss_rand_copy(addrs[0], n * dt, 0) * gauss_rand_copy(addrs[0], (n + lag) * dt, 0);
+        printf("    autocorrelation lag %d: %+.4f\n", lag, c / N);
     }
-    printf("components 0-1 corr  : %+.4f\n", cross01 / N);
-    printf("two-particle corr    : %+.4f  (addresses 0x1C0 bytes apart, same time)\n", pp / N);
+
+    printf("\n[2] correlation between two particles at the same time (N = %d)\n", N);
+    for (g = 0; g < n_gap; g++) {
+        double c = 0.0;
+        for (n = 0; n < N; n++)
+            c += gauss_rand_copy(addrs[0], n * dt, 0) * gauss_rand_copy(addrs[0] + gaps[g], n * dt, 0);
+        printf("    address gap %#6llx: %+.4f\n", (unsigned long long)gaps[g], c / N);
+    }
+
+    printf("\n[3] var(sum of %d successive deviates)/%d, %d blocks (ideal 1)\n", M, M, B);
+    for (a = 0; a < n_addr; a++) {
+        double s2 = 0.0;
+        for (b = 0; b < B; b++) {
+            double s = 0.0;
+            for (m = 0; m < M; m++) s += gauss_rand_copy(addrs[a], (double)(b * M + m) * dt, 0);
+            s2 += s * s;
+        }
+        printf("    address %#16llx: %.2f\n", (unsigned long long)addrs[a], s2 / B / M);
+    }
+
+    {
+        enum { NA = 2000, B4 = 50 };
+        static double v[NA];
+        uint64_t x = 0x9E3779B97F4A7C15ULL; /* xorshift64 state, fixed seed */
+        for (a = 0; a < NA; a++) {
+            uint64_t addr;
+            double s2 = 0.0;
+            x ^= x << 13; x ^= x >> 7; x ^= x << 17;
+            addr = 0x7f0000000000ULL + ((x >> 20) & 0xFFFFFFFFF0ULL);
+            for (b = 0; b < B4; b++) {
+                double s = 0.0;
+                for (m = 0; m < M; m++) s += gauss_rand_copy(addr, (double)(b * M + m) * dt, 0);
+                s2 += s * s;
+            }
+            v[a] = s2 / B4 / M;
+        }
+        qsort(v, NA, sizeof v[0], cmp_double);
+        printf("\n[4] as [3] for %d random 16-byte-aligned addresses, %d blocks each\n", NA, B4);
+        printf("    min %.2f, 5%% %.2f, median %.2f, 95%% %.2f, max %.2f\n",
+               v[0], v[NA / 20], v[NA / 2], v[NA - 1 - NA / 20], v[NA - 1]);
+    }
     return 0;
 }
