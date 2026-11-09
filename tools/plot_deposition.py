@@ -1,11 +1,9 @@
 """Plot the deposition fraction recorded in data/deposition_fraction.csv.
 
 Usage (from the repository root):
-    python tools/plot_deposition.py
+    python3 tools/plot_deposition.py
 
 Writes figures/deposition-fraction.png. Requires Python 3 and matplotlib.
-Only values backed by a Fluent DPM summary are plotted; no benchmark data are drawn,
-because digitized Dehbi (2008) and Pui et al. (1987) values are not yet in this repository.
 """
 import csv
 from pathlib import Path
