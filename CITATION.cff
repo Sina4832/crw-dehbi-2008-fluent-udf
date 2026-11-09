@@ -1,6 +1,6 @@
 cff-version: 1.2.0
 message: "If you use this UDF, report or data, please cite it as below."
-title: "CRW-Langevin particle dispersion UDF for ANSYS Fluent (reproduction of Dehbi, 2008)"
+title: "CRW-Langevin particle dispersion UDF for ANSYS Fluent (implementation of Dehbi, 2008)"
 type: software
 authors:
   - family-names: "Karbakhsh Ravari"
@@ -9,7 +9,8 @@ authors:
     orcid: "https://orcid.org/0009-0003-6017-8628"
 repository-code: "https://github.com/Sina4832/crw-dehbi-2008-fluent-udf"
 license: MIT
-date-released: "2026-05-14"
+version: "2.0"
+date-released: "2026-11-09"
 keywords:
   - CFD
   - ANSYS Fluent

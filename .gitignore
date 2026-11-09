@@ -53,3 +53,18 @@ dkms.conf
 
 # debug information files
 *.dwo
+
+# Fluent build and output files
+libudf/
+*.cas
+*.cas.h5
+*.cas.gz
+*.dat
+*.dat.h5
+*.dat.gz
+*.trn
+*.log
+
+# Local build of tools/rng_check.c and Python caches
+rng_check
+__pycache__/
