@@ -1,0 +1,15 @@
+# Deposition fraction in the 90-degree bend, read from the Fluent DPM summaries
+# reproduced in Appendix B of the original report (report/original/report-dehbi-v1-2026-03.pdf).
+# deposition_fraction = aborted / tracked. Deposited particles are stopped by the wall UDF dehbi_wall_bc,
+# which Fluent reports as 'aborted'.
+# std_error = sqrt(DF*(1-DF)/tracked), the sampling (binomial) uncertainty only.
+# Stokes number Stk = rho_p * d_p^2 * U / (9 * mu * D), rho_p = 1000 kg/m3, U = 3.0 m/s,
+# mu = 1.81e-5 Pa s, D = 0.02 m, Cunningham correction neglected (values as stated in report revision 1).
+# Particle density and the 10 um injection diameter are still to be confirmed from the case file
+# (report Sec. 4); if the Fluent default anthracite density (1550 kg/m3) was used, Stk is 1.55 times larger.
+d_p_um,stokes_number,tracked,escaped,aborted,deposition_fraction,std_error
+10,0.092,10000,8329,1671,0.1671,0.0037
+20,0.368,10000,4279,5721,0.5721,0.0049
+30,0.829,10000,2142,7858,0.7858,0.0041
+40,1.473,10000,546,9454,0.9454,0.0023
+50,2.302,10000,199,9801,0.9801,0.0014
