@@ -1,9 +1,13 @@
-# Deposition fraction in the 90-degree bend, from the ANSYS Fluent DPM summaries.
-# deposition_fraction = aborted / tracked; deposited particles are stopped by the wall UDF
-# dehbi_wall_bc, which Fluent reports as "aborted".
-# std_error = sqrt(DF*(1-DF)/tracked), binomial sampling uncertainty.
-# stokes_number = rho_p*d_p^2*U/(9*mu*D) with rho_p = 1000 kg/m3, U = 3.0 m/s,
-# mu = 1.81e-5 Pa s, D = 0.02 m, Cunningham correction neglected.
+# Deposition fraction (DF) in the test section (5D inlet pipe, 90-degree bend,
+# 5D outlet pipe), from the ANSYS Fluent DPM summaries of the reported runs.
+# deposition_fraction = aborted / tracked. Deposited particles are stopped by
+# the wall UDF dehbi_wall_bc, which Fluent reports as "aborted".
+# std_error = sqrt(DF*(1-DF)/tracked): binomial sampling error, assuming
+# statistically independent particle histories.
+# stokes_number = rho_p*d_p^2*U/(9*mu*D) with rho_p = 1000 kg/m^3, U = 3.0 m/s,
+# mu = 1.81e-5 Pa s, D = 0.02 m; Cunningham correction neglected.
+# Note: the archived injection dialog for the 10 um class records d_p = 5 um
+# and the material "anthracite" (technical report, Section 6).
 d_p_um,stokes_number,tracked,escaped,aborted,deposition_fraction,std_error
 10,0.092,10000,8329,1671,0.1671,0.0037
 20,0.368,10000,4279,5721,0.5721,0.0049

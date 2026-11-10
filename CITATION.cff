@@ -1,6 +1,6 @@
 cff-version: 1.2.0
-message: "If you use this UDF, report or data, please cite it as below."
-title: "CRW-Langevin particle dispersion UDF for ANSYS Fluent (implementation of Dehbi, 2008)"
+message: "If you use this software, report or data, please cite them as below."
+title: "Continuous random walk (CRW) particle dispersion UDF for ANSYS Fluent: an implementation of Dehbi (2008)"
 type: software
 authors:
   - family-names: "Karbakhsh Ravari"
@@ -8,9 +8,15 @@ authors:
     affiliation: "Shiraz University"
     orcid: "https://orcid.org/0009-0003-6017-8628"
 repository-code: "https://github.com/sina-karbakhsh/crw-dehbi-2008-fluent-udf"
+abstract: >-
+  ANSYS Fluent user-defined function (C) implementing the continuous random
+  walk (CRW) particle dispersion model of Dehbi (2008), applied to aerosol
+  deposition in a 90-degree pipe bend, with a technical report, the
+  deposition data, a plotting script and a statistical test of the
+  random-number generator.
 license: MIT
-version: "2.0"
-date-released: "2026-11-09"
+version: "3.0"
+date-released: "2026-11-10"
 keywords:
   - CFD
   - ANSYS Fluent

@@ -1,9 +1,17 @@
-"""Plot the deposition fraction recorded in data/deposition_fraction.csv.
+"""Plot the deposition fraction in data/deposition_fraction.csv against the
+Stokes number, with the turbulent-bend correlation of Pui et al. (1987).
 
 Usage (from the repository root):
     python3 tools/plot_deposition.py
 
 Writes figures/deposition-fraction.png. Requires Python 3 and matplotlib.
+
+Correlation: DF = 1 - 10**(-0.963 Stk), fitted to measurements in 90-degree
+bends with curvature ratio 5.7 and Re = 6000-10,000 (Pui et al., 1987; as
+reproduced by Sippola and Nazaroff, 2002, Eq. 121 and Table 8). It is drawn
+solid up to Stk = 1.35, the largest Stokes number of the measurements, and
+dashed beyond. It is shown for reference only: the present case has a
+curvature ratio of 4 and Re = 4.1e3 (see the technical report, Section 4).
 """
 import csv
 from pathlib import Path
@@ -13,32 +21,47 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
 
+STK_MEASURED_MAX = 1.35
+STK_PLOT_MAX = 2.6
+
 root = Path(__file__).resolve().parents[1]
-rows = []
 with open(root / "data" / "deposition_fraction.csv", newline="") as fh:
-    for row in csv.DictReader(line for line in fh if not line.startswith("#")):
-        rows.append(row)
+    rows = list(csv.DictReader(ln for ln in fh if not ln.startswith("#")))
 
-d = [float(r["d_p_um"]) for r in rows]
-df = [100 * float(r["deposition_fraction"]) for r in rows]
-err = [100 * 1.96 * float(r["std_error"]) for r in rows]
+d_p = [float(r["d_p_um"]) for r in rows]
+stk = [float(r["stokes_number"]) for r in rows]
+dep = [100.0 * float(r["deposition_fraction"]) for r in rows]
 
-fig, ax = plt.subplots(figsize=(5.5, 4.2), dpi=150)
-ax.errorbar(d, df, yerr=err, fmt="o", color="#1f4e79", ecolor="#1f4e79",
-            capsize=3, markersize=6, label="Present CRW UDF (Fluent DPM summary)")
-ax.set_xlabel(r"Particle diameter $d_p$ ($\mu$m)")
+
+def pui(s):
+    """Deposition fraction (%) from the Pui et al. (1987) correlation."""
+    return 100.0 * (1.0 - 10.0 ** (-0.963 * s))
+
+
+n = 200
+s_meas = [STK_MEASURED_MAX * i / n for i in range(n + 1)]
+s_extr = [STK_MEASURED_MAX + (STK_PLOT_MAX - STK_MEASURED_MAX) * i / n
+          for i in range(n + 1)]
+
+matplotlib.rcdefaults()  # independent of any local matplotlibrc
+plt.rcParams.update({"font.size": 11, "axes.labelsize": 11,
+                     "legend.fontsize": 9.5})
+fig, ax = plt.subplots(figsize=(6.4, 4.2), dpi=150)
+ax.plot(s_meas, [pui(s) for s in s_meas], color="0.45", lw=1.6,
+        label="Pui et al. (1987) correlation")
+ax.plot(s_extr, [pui(s) for s in s_extr], color="0.45", lw=1.6, ls="--",
+        label="Pui et al. (1987), beyond measured range")
+ax.plot(stk, dep, "o", color="#1f4e79", ms=7, zorder=3,
+        label="Present CRW UDF")
+for s, y, d in zip(stk, dep, d_p):
+    ax.annotate(f"{d:.0f} µm", (s, y), textcoords="offset points",
+                xytext=(7, -13), fontsize=9, color="#1f4e79")
+ax.set_xlabel(r"Stokes number $Stk = \rho_p d_p^2 U / (9 \mu D)$")
 ax.set_ylabel("Deposition fraction (%)")
-ax.set_xlim(0, 55)
-ax.set_ylim(0, 100)
+ax.set_xlim(0.0, STK_PLOT_MAX)
+ax.set_ylim(0.0, 100.0)
 ax.grid(True, alpha=0.3)
-ax.legend(loc="lower right", frameon=False, fontsize=8)
-# Top axis: flow Stokes number Stk = rho_p d_p^2 U / (9 mu D), linear in d_p^2.
-k = float(rows[0]["stokes_number"]) / float(rows[0]["d_p_um"]) ** 2
-top = ax.secondary_xaxis("top", functions=(lambda x: k * x**2, lambda s: (abs(s) / k) ** 0.5))
-top.set_ticks([0.1, 0.5, 1.0, 2.0])
-top.set_xlabel(r"Flow Stokes number $Stk$", fontsize=9)
-fig.text(0.01, 0.01, "10,000 particles per diameter. 95% sampling intervals are smaller than the markers.",
-         fontsize=6.5, color="#555")
+ax.legend(loc="lower right", frameon=False)
 fig.tight_layout()
 fig.savefig(root / "figures" / "deposition-fraction.png")
 print("wrote figures/deposition-fraction.png")
