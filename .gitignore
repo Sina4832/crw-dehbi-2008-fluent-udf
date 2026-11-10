@@ -8,9 +8,22 @@ libudf/
 *.dat.gz
 *.trn
 *.log
+*.msh
+*.msh.h5
+*.msh.gz
+*.dpm
+*.flprj
+*.flprz
+cleanup-fluent-*
 
 # Local builds and caches
 *.o
 *.exe
 rng_check
 __pycache__/
+.venv/
+venv/
+
+# Operating-system files
+.DS_Store
+Thumbs.db
