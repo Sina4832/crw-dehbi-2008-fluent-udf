@@ -1,16 +1,16 @@
 /***********************************************************************
- * Continuous Random Walk (CRW) Langevin UDF  -- REVISED
+ * Continuous Random Walk (CRW) Langevin UDF  (rev. 10; FIX-n: dev. log)
  * Reference : Dehbi A. (2008), Int. J. Multiphase Flow 34, 819-828
- * Target    : Figure 8 - turbulent particle deposition in a 90-deg bend
+ * Case      : 90-deg bend deposition (cf. Dehbi 2008, Fig. 8; see report)
  * ---------------------------------------------
  *  - Normalised Langevin equations, Eqs. (21-30)
  *  - DNS-based ANISOTROPIC rms profiles, Eqs. (37-39) [Dreeben & Pope 1997]
  *  - Kallio-Reeks Lagrangian time scales in BL, Eqs. (31-33)
  *  - Bulk time scale  sL = (2/C0)*k/eps,  C0=14,  Eq. (36)
- *  - Drift correction (d(sigma^2)/dy in BL) scaled by 1/(1+Stk)
- *  - Bulk grad-k drift zeroed (safe RSM approximation, see FIX-17)
- *  - Body-Fitted Coordinate System (BFCS) inside boundary layer
- *  - Simple TRAP deposition criterion (centre < 1 radius from wall)
+ *  - Drift correction (d(sigma_2)/dy in BL) scaled by 1/(1+Stk)
+ *  - Bulk grad-k drift omitted (C_K_G failed under RSM; see FIX-17)
+ *  - Body-fitted frame (BFCS) and near-wall rms in wall-adjacent cells
+ *  - Deposition at wall-face contact (point particle, PATH_ABORT)
  *  - Adaptive time step: min(1e-6 s, 0.1*tau_p)
  *
  * Fluent Setup Checklist
@@ -80,14 +80,14 @@
  * Section 1 - Utility: thread-safe Gaussian random number generator
  *
  * FIX-2 : size_t replaces uintptr_t.
- * FIX-4 : Two independent LCG chains (Chain A: Numerical Recipes,
- *          Chain B: Borland C). Both seeded from the same particle
- *          state but XOR-mixed with distinct magic constants, producing
- *          uncorrelated u1, u2. Box-Muller yields a standard normal.
+ * FIX-4 : Stateless: one LCG step each (Numerical Recipes constants
+ *          -> u1, Borland C constants -> u2) on a hash of particle
+ *          address, time and salt; Box-Muller gives N(0,1). Successive
+ *          deviates are correlated (report Sec. 5, tools/rng_check.c).
  * FIX-10: On Windows MSVC, unsigned long is 32-bit even in 64-bit
- *          builds. The cast of (TP_TIME(p)*1e9) to unsigned long wraps
- *          for t > ~4.29 s. Truncation is intentional; the lower 32
- *          bits still provide adequate entropy for the hash seed.
+ *          builds. (unsigned long)(TP_TIME(p)*1e9) is out of range for
+ *          t > ~4.29 s (undefined in ISO C). Particle residence times
+ *          in the present case are below 0.1 s.
  * FIX-13: parameter changed from Particle* to Tracked_Particle*.
  * FIX-15: TP_TIME replaces P_TIME.
  *====================================================================*/
@@ -157,7 +157,7 @@ static real sigma_plus(real yp, int dir)
  *   d(sigma2+)/d(y+) = [2A*y+*D - A*(y+)^2*D'] / D^2
  *
  * Required for the wall-normal drift correction in Eq. (22):
- *   A2 = d(sigma2)/dy = d(sigma2+)/d(y+) * (u_star^2 / nu)
+ *   A2 = d(sigma2)/dy / (1+Stk), d(sigma2)/dy = d(sigma2+)/d(y+)*u*^2/nu
  *   (chain rule: y_plus = y * u_star / nu)
  *====================================================================*/
 static real dsigma2p_dyp(real yp)
@@ -279,19 +279,19 @@ static void build_bfcs(cell_t c, Thread *ct,
  *
  * FIX-12: all Unicode/non-ASCII characters removed from this block.
  *
- * Advances the normalised Langevin equations using first-order
- * IMPLICIT EULER (unconditionally stable for any dt/tau_L).
+ * Advances the normalised Langevin equations with a first-order
+ * semi-implicit Euler-Maruyama step (drift implicit, noise explicit).
  * Stores the resulting stochastic fluid velocity in
  * TP_USER_REAL(p, PR_UFLUC_X/Y/Z).
  *
- * Boundary layer branch (y+ < 100): Eqs. (21-23) in BFCS
+ * Near-wall branch (wall-adjacent cells, y+ < 100): Eqs. (21-23), BFCS
  *   eta_i_new = (eta_i_old + sqrt(2*dt/tau_L)*xi_i + A_i*dt) / (1+dt/tau_L)
  *   A1 = 0  (paper Sec. 7)
  *   A2 = d(sigma2)/dy / (1+Stk)   [Eq. 22]
  *   A3 = 0  [Mito & Hanratty 2004]
  *
- * Bulk branch (y+ >= 100): Eqs. (28-30) in CCS, isotropic
- *   grad-k drift term set to zero (RSM-safe, see FIX-17)
+ * Bulk branch (all other cells): Eqs. (28-30) in CCS, isotropic
+ *   grad-k drift term set to zero (see FIX-17)
  *
  * FIX-13: parameter changed from Particle* to Tracked_Particle*.
  * FIX-15: all P_... macros replaced with TP_... macros.
@@ -372,7 +372,7 @@ static void advance_langevin(Tracked_Particle *p)
     nw[1] = C_UDMI(c, ct, UDM_NY);
     nw[2] = C_UDMI(c, ct, UDM_NZ);
 
-    /*--- Fallback for cells not reached by pre-processing (outer bulk) ---*/
+    /*--- All cells not adjacent to a wall (incl. buffer layer): bulk ---*/
     if (C_UDMI(c, ct, UDM_INIT) < 0.5 || u_tau < 1.0e-10)
     {
         u_tau = pow(0.09, 0.25) * sqrt(k);
@@ -402,7 +402,7 @@ static void advance_langevin(Tracked_Particle *p)
     for (i = 0; i < 3; i++) xi[i] = gauss_rand(p, i);
 
     /* ==================================================================
-     * Branch A: Boundary layer  (y+ < 100)
+     * Branch A: wall-adjacent cells (y+ < 100)
      * Normalised Langevin in BFCS,  Eqs. (21-23)
      * ================================================================ */
     if (yp < BL_YPLUS_MAX)
@@ -423,7 +423,7 @@ static void advance_langevin(Tracked_Particle *p)
         /* A1 = 0: streamwise DNS drift not available, Dehbi (2008) Sec. 7 */
         /* A3 = 0: Mito & Hanratty (2004)                                   */
 
-        /* Implicit Euler integration of normalised fluctuations */
+        /* Semi-implicit Euler-Maruyama step, normalised fluctuations */
         eta[0] = (eta[0] + noise_amp * xi[0]           ) / denom; /* Eq.(21) */
         eta[1] = (eta[1] + noise_amp * xi[1] + A2 * dt ) / denom; /* Eq.(22) */
         eta[2] = (eta[2] + noise_amp * xi[2]           ) / denom; /* Eq.(23) */
@@ -449,11 +449,11 @@ static void advance_langevin(Tracked_Particle *p)
         /* FIX-17: C_K_G call removed entirely.
            Under RSM, SV_K_G may not be correctly allocated and can return
            a non-NULL garbage pointer whose dereference causes SIGSEGV.
-           The bulk grad-k drift correction (Eq. 27) is zeroed here as a
-           conservative and physically valid RSM-safe approximation.
-           The dominant deposition physics of the 90-deg bend case are
-           governed by the boundary-layer branch above; the bulk drift
-           correction has negligible effect on the final results. */
+           The bulk grad-k drift correction (Eq. 27) is therefore zeroed;
+           its effect on the results has not been quantified.
+           NOTE: the bulk branch is used in every cell that is not
+           wall-adjacent, so this omission also applies to the buffer
+           layer (about 1 < y+ < 100) on the present mesh. */
         dk[0] = 0.0;
         dk[1] = 0.0;
         dk[2] = 0.0;
@@ -461,7 +461,7 @@ static void advance_langevin(Tracked_Particle *p)
         /* Drift prefactor: 1/(3*r*(1+Stk))   Eq.(27) */
         df = 1.0 / (3.0 * r_bulk * (1.0 + Stk) + 1.0e-20);
 
-        /* Implicit Euler in CCS */
+        /* Semi-implicit Euler-Maruyama step in CCS */
         eta[0] = (eta[0] + noise_amp * xi[0] + df * dk[0] * dt) / denom; /* Eq.(28) */
         eta[1] = (eta[1] + noise_amp * xi[1] + df * dk[1] * dt) / denom; /* Eq.(29) */
         eta[2] = (eta[2] + noise_amp * xi[2] + df * dk[2] * dt) / denom; /* Eq.(30) */
@@ -491,7 +491,7 @@ static void advance_langevin(Tracked_Particle *p)
  *
  * Multi-wall topology: if a cell borders multiple wall faces the UDMs
  * are updated only when the new face is CLOSER (minimum-distance rule).
- * Non-wall-adjacent cells are handled at runtime by a k-eps fallback.
+ * All other cells use the isotropic bulk branch at run time.
  *
  * Called once after flow convergence: UDF -> Execute -> init_wall_udm
  *====================================================================*/
@@ -715,7 +715,7 @@ DEFINE_DPM_BODY_FORCE(crw_langevin_force, p, i)
     }
     Re_p = sqrt(rel_sq) * dp / (nu_f + 1.0e-20);
 
-    /* Schiller-Naumann drag (Fluent default for spherical particles) */
+    /* Schiller-Naumann drag (Fluent's spherical law: Morsi-Alexander) */
     if (Re_p < 1000.0)
         CdRe24 = 1.0 + 0.15 * pow(Re_p, 0.687);
     else
@@ -740,11 +740,11 @@ DEFINE_DPM_BODY_FORCE(crw_langevin_force, p, i)
 /*======================================================================
  * UDF 3 - DEFINE_DPM_BC: wall boundary condition
  *
- * Dehbi (2008) Sec. 10.2:
- *   "A particle is considered deposited when its centre of mass is
- *    located less than one particle radius from the nearest wall."
- * A particle reaching a wall face in Fluent DPM satisfies this
- * criterion -> trap unconditionally (PATH_ABORT).
+ * Dehbi (2008) Sec. 10.2 deposits a particle when its centre is less
+ *   than one particle radius from the wall. That test is NOT applied
+ *   here: Fluent calls this function when the particle trajectory
+ *   reaches a wall face, and the particle is stopped (PATH_ABORT,
+ *   reported as "aborted" in the Fluent DPM summary).
  *====================================================================*/
 DEFINE_DPM_BC(dehbi_wall_bc, p, t, f, f_normal, dim)
 {
