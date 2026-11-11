@@ -7,7 +7,7 @@
  *  - DNS-based ANISOTROPIC rms profiles, Eqs. (37-39) [Dreeben & Pope 1997]
  *  - Kallio-Reeks Lagrangian time scales in BL, Eqs. (31-33)
  *  - Bulk time scale  sL = (2/C0)*k/eps,  C0=14,  Eq. (36)
- *  - Drift correction (d(sigma_2)/dy in BL) scaled by 1/(1+Stk)
+ *  - Drift correction (d(sigma_2)/dy, wall-adjacent cells) scaled by 1/(1+Stk)
  *  - Bulk grad-k drift omitted (C_K_G failed under RSM; see FIX-17)
  *  - Body-fitted frame (BFCS) and near-wall rms in wall-adjacent cells
  *  - Deposition at wall-face contact (point particle, PATH_ABORT)
@@ -438,7 +438,7 @@ static void advance_langevin(Tracked_Particle *p)
         TP_USER_REAL(p, PR_UFLUC_Z) = ub[0]*e1[2] + ub[1]*e2[2] + ub[2]*e3[2];
     }
     /* ==================================================================
-     * Branch B: Bulk  (y+ >= 100)
+     * Branch B: all other cells (yp set to 101 above)
      * Normalised Langevin in CCS, isotropic turbulence,  Eqs. (28-30)
      * ================================================================ */
     else

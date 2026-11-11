@@ -141,8 +141,9 @@ int main(int argc, char **argv)
     }
     {
         /* [5] Langevin update of the UDF, eta <- (eta + sqrt(2 dt/tau_L) xi)
-         * / (1 + dt/tau_L), started from the injection deviate (salt 10, UDF
-         * line 678) and driven with salt 1 (wall-normal component). tau_L =
+         * / (1 + dt/tau_L), started from the injection deviate (salt 11, UDF
+         * line 678) and driven with salt 1, both for the wall-normal
+         * component. tau_L =
          * 3.32e-3 s corresponds to tau_L+ = 10 in this case; the path covers
          * 0.088 s, the residence time at the bulk velocity, and eta^2 is
          * averaged over its second half. The ideal generator shows the spread
@@ -159,7 +160,7 @@ int main(int argc, char **argv)
             double e, ei, s2 = 0.0, s2i = 0.0;
             x ^= x << 13; x ^= x >> 7; x ^= x << 17;
             addr = 0x7f0000000000ULL + ((x >> 20) & 0xFFFFFFFFF0ULL);
-            e = gauss_rand_copy(addr, 0.0, 10);
+            e = gauss_rand_copy(addr, 0.0, 11);
             ei = ideal_gauss(&ref);
             for (k = 1; k <= n_step; k++) {
                 e = (e + amp * gauss_rand_copy(addr, (double)k * dt, 1)) / den;

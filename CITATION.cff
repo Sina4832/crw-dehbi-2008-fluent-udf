@@ -16,7 +16,7 @@ abstract: >-
   random-number generator.
 license: MIT
 version: "3.0"
-date-released: "2026-11-10"
+date-released: "2026-11-11"
 keywords:
   - CFD
   - ANSYS Fluent

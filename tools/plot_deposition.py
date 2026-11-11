@@ -17,9 +17,9 @@ import csv
 from pathlib import Path
 
 import matplotlib
+import matplotlib.pyplot as plt
 
 matplotlib.use("Agg")
-import matplotlib.pyplot as plt  # noqa: E402
 
 STK_MEASURED_MAX = 1.35
 STK_PLOT_MAX = 2.6
@@ -53,7 +53,7 @@ ax.plot(s_extr, [pui(s) for s in s_extr], color="0.45", lw=1.6, ls="--",
         label="Pui et al. (1987), beyond measured range")
 ax.plot(stk, dep, "o", color="#1f4e79", ms=7, zorder=3,
         label="Present CRW UDF")
-for s, y, d in zip(stk, dep, d_p):
+for s, y, d in zip(stk, dep, d_p, strict=True):
     ax.annotate(f"{d:.0f} µm", (s, y), textcoords="offset points",
                 xytext=(7, -13), fontsize=9, color="#1f4e79")
 ax.set_xlabel(r"Stokes number $Stk = \rho_p d_p^2 U / (9 \mu D)$")

@@ -45,7 +45,9 @@ report.
 Air at 3.0 m/s in a pipe of 20 mm diameter with a 90° bend of curvature ratio
 4 (Re = 4.1 × 10³); Reynolds stress model with enhanced wall treatment on a
 5.3 × 10⁶-cell hexahedral mesh (ANSYS Fluent 2024 R2); 10,000 particles per
-size class, density 1000 kg/m³. The Stokes number is
+size class, density 1000 kg/m³ as specified in the UDF header (the archived
+injection settings name a denser material; report, Sections 4 and 6). The
+Stokes number is
 Stk = ρ<sub>p</sub> d<sub>p</sub>² U / (9 μ D), and the deposition fraction
 is counted over the whole domain.
 
@@ -63,9 +65,12 @@ is counted over the whole domain.
 <p align="center"><img src="figures/deposition-fraction.png" width="600" alt="Deposition fraction against Stokes number for the five particle sizes, with the Pui et al. (1987) correlation"></p>
 
 At equal Stokes number the results differ from the turbulent-bend correlation
-of Pui et al. (1987) by −5.5 to +1.4 percentage points. The curvature ratio,
-Reynolds number and inlet flow differ from those of the experiments (report,
-Section 4), so this is a qualitative comparison, not a validation.
+of Pui et al. (1987) by −5.5 to +1.4 percentage points. At the smallest Stokes
+number, however, the computed value lies above the published bend
+measurements, including those at the present curvature ratio (McFarland et
+al., 1997). The geometry and flow conditions differ from those of the
+experiments (report, Section 4), so this is a qualitative comparison, not a
+validation.
 
 ## Limitations
 
@@ -95,10 +100,10 @@ The UDF is written for three-dimensional cases.
 5. Disable the built-in turbulent dispersion model. Hook `crw_langevin_force`
    (DPM body force) and `crw_adaptive_dt` (DPM time step), and set the DPM
    condition of the wall zones to `dehbi_wall_bc`.
-6. Track the particles with a step limit high enough that no particle is
-   reported as incomplete (more than 10⁵ steps at a time step of 10⁻⁶ s). The
-   deposition fraction is the number of "aborted" particles divided by the
-   number tracked.
+6. Track the particles with a maximum number of steps large enough for every
+   particle to escape or deposit (more than 10⁵ steps at a time step of
+   10⁻⁶ s). The deposition fraction is the number of "aborted" particles
+   divided by the number tracked.
 
 ## Reproducibility
 
@@ -123,10 +128,11 @@ gcc -std=c99 -O2 -o rng_check tools/rng_check.c -lm
 - `report/`: technical report (Markdown and PDF)
 - `data/`: deposition fractions from the Fluent DPM summaries
 - `figures/`: geometry, meshes, wall y⁺, residuals and results;
-  `figures/setup/` holds the Fluent dialogs
+  `figures/setup/` holds the Fluent dialogs and DPM summaries
 - `tools/`: plotting script and random-number-generator test
 
 ## Citation and licence
 
 Please cite this repository using [`CITATION.cff`](CITATION.cff). The code is
-released under the [MIT License](LICENSE).
+released under the [MIT License](LICENSE). ANSYS and Fluent are trademarks of
+ANSYS, Inc.; the screenshots of the software document the case settings.

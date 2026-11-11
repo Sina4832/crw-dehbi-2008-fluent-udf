@@ -1,5 +1,6 @@
 # Deposition fraction (DF) in the test section (5D inlet pipe, 90-degree bend,
-# 5D outlet pipe), from the ANSYS Fluent DPM summaries of the reported runs.
+# 5D outlet pipe), from the ANSYS Fluent DPM summaries of the reported runs
+# (figures/setup/dpm-summaries.png).
 # deposition_fraction = aborted / tracked. Deposited particles are stopped by
 # the wall UDF dehbi_wall_bc, which Fluent reports as "aborted".
 # std_error = sqrt(DF*(1-DF)/tracked): binomial sampling error, assuming
